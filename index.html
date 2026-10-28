@@ -1,0 +1,491 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Misura i filari | Cordioli</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: mappa a tutta altezza, pannello comandi sotto (telefono) o a sinistra (schermo largo). */
+:root{
+  --navy:#1E3A5F; --gold:#E0A92A; --ink:#14243B; --paper:#F7F5EE; --line:#D9D4C5; --mute:#5A6678; --white:#fff;
+  --display:'Barlow Condensed','Arial Narrow',sans-serif; --body:'Barlow','Helvetica Neue',Arial,sans-serif;
+  color-scheme: light;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font-family:var(--body);color:var(--ink);background:var(--paper);font-size:16px;line-height:1.4;-webkit-text-size-adjust:100%}
+.app{height:100dvh;display:grid;grid-template-rows:minmax(0,1fr) minmax(0,50dvh)}
+#map{min-height:0;background:#cfd8c8}
+.panel{overflow-y:auto;background:var(--paper);border-top:4px solid var(--gold);padding:14px max(16px,env(safe-area-inset-right,0px)) max(24px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:16px}
+@media (min-width:900px){
+  .app{grid-template-rows:none;grid-template-columns:minmax(380px,420px) minmax(0,1fr)}
+  .panel{order:-1;border-top:0;border-right:4px solid var(--gold);padding-top:20px}
+}
+.brand{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.12em;text-transform:uppercase;color:var(--navy);margin:0}
+h1{font-family:var(--display);font-weight:700;font-size:32px;line-height:1;margin:2px 0 6px;text-wrap:balance}
+.lead{margin:0;color:var(--mute);font-size:15px}
+.search{display:flex;gap:8px}
+select{font:inherit;color:var(--ink);background:var(--white);border:1.5px solid var(--line);border-radius:6px;padding:10px 12px;width:100%;min-height:44px;text-transform:none;letter-spacing:0;font-weight:500}
+input[type=text],input[type=number]{font:inherit;color:var(--ink);background:var(--white);border:1.5px solid var(--line);border-radius:6px;padding:10px 12px;min-width:0;width:100%}
+input:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+button{font:inherit;font-weight:600;cursor:pointer;border-radius:6px;border:1.5px solid var(--navy);background:var(--white);color:var(--navy);padding:10px 14px;min-height:44px}
+button.primary{background:var(--navy);color:var(--white)}
+button.gold{background:var(--gold);border-color:var(--gold);color:var(--ink)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.row>button{flex:1 1 auto}
+.step{display:flex;flex-direction:column;gap:10px;padding-top:14px;border-top:1px solid var(--line)}
+.step h2{margin:0;display:flex;align-items:center;gap:10px;font-family:var(--display);font-size:24px;line-height:1.05}
+.step h2 i{font-style:normal;flex:none;width:28px;height:28px;border-radius:50%;background:var(--navy);color:var(--white);display:grid;place-items:center;font-size:17px}
+.hint{margin:0;font-size:15px;color:var(--mute)}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--navy)}
+label small{font-weight:500;letter-spacing:0;text-transform:none;color:var(--mute);font-size:13px}
+.ang{display:flex;align-items:center;gap:10px}
+.ang input[type=range]{flex:1;accent-color:var(--navy);min-width:0}
+.ang output{font-variant-numeric:tabular-nums;font-weight:600;min-width:3.2em;text-align:right}
+.result{background:var(--navy);color:var(--paper);padding:16px;border-bottom:5px solid var(--gold);display:flex;flex-direction:column;gap:2px}
+.result .k{font-size:13px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
+.result .big{font-family:var(--display);font-weight:700;font-size:56px;line-height:1;font-variant-numeric:tabular-nums}
+.result .big span{font-size:26px;margin-left:6px}
+.result .sub{font-size:15px;opacity:.9}
+.plots{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.plots button{all:unset;box-sizing:border-box;cursor:pointer;display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:10px 4px;border-bottom:1px solid var(--line);min-height:44px}
+.plots button[aria-current=true]{background:#EFE6C8;padding-left:10px}
+.plots b{font-weight:600}
+.plots span{font-size:14px;color:var(--mute)}
+.plots .m{grid-row:1/3;grid-column:2;align-self:center;font-family:var(--display);font-weight:700;font-size:24px;color:var(--ink);font-variant-numeric:tabular-nums}
+.contact{display:flex;flex-direction:column;gap:6px;font-size:16px}
+.contact a{color:var(--navy);font-weight:600}
+.note{font-size:13px;color:var(--mute);margin:0}
+.msg{font-size:14px;color:#8A3B12;margin:0}
+.toast{font-size:14px;color:var(--navy);font-weight:600;min-height:1.2em;margin:0}
+/* maniglie dei punti sulla mappa */
+.vtx{width:22px;height:22px;border-radius:50%;background:var(--gold);border:3px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.45)}
+.vtx.d{background:#fff;border-color:var(--navy)}
+.leaflet-container{font-family:var(--body)}
+.crosshair .leaflet-container{cursor:crosshair}
+noscript{padding:16px;display:block}
+</style>
+</head>
+<body>
+<main class="app" id="app">
+  <div id="map" role="application" aria-label="Mappa satellitare del vigneto"></div>
+
+  <section class="panel" aria-label="Comandi">
+    <header>
+      <p class="brand">Cordioli S.r.l.</p>
+      <h1>Misura i filari del tuo vigneto</h1>
+      <p class="lead">Disegna il contorno sulla mappa: ti calcoliamo i metri lineari di filare per la rete antigrandine.</p>
+    </header>
+
+    <form class="search" id="searchForm" role="search">
+      <input type="text" id="q" placeholder="Cerca indirizzo o località" aria-label="Cerca indirizzo o località" autocomplete="off">
+      <button type="submit" class="primary">Cerca</button>
+      <button type="button" id="locBtn" title="Usa la mia posizione" aria-label="Usa la mia posizione">GPS</button>
+    </form>
+    <p class="msg" id="searchMsg" hidden></p>
+    <label for="imgSel" id="imgWrap" hidden>Immagini satellitari <small>se i filari non si vedono bene, prova una data diversa</small>
+      <select id="imgSel"></select>
+    </label>
+
+    <div class="step">
+      <h2><i>1</i>Disegna il vigneto</h2>
+      <p class="hint" id="drawHint"></p>
+      <div class="row">
+        <button type="button" id="closeBtn" class="primary">Chiudi il contorno</button>
+        <button type="button" id="undoBtn">Annulla punto</button>
+        <button type="button" id="clearBtn">Ricomincia</button>
+      </div>
+    </div>
+
+    <div class="step" id="rowsStep">
+      <h2><i>2</i>Controlla i filari</h2>
+      <p class="hint">Le linee gialle sulla mappa sono i filari calcolati. Falle combaciare con quelli che vedi in foto.</p>
+      <label for="bearing">Direzione dei filari <small>0° nord-sud, 90° est-ovest</small>
+        <span class="ang"><input type="range" id="bearing" min="0" max="180" step="1" value="0"><output id="bearingOut" for="bearing">0°</output></span>
+      </label>
+      <button type="button" id="traceBtn">Traccia un filare sulla mappa (2 tocchi)</button>
+      <div class="fields">
+        <label for="spacing">Interfilare (m) <small>distanza tra due filari, di solito 2-3 m</small>
+          <input type="number" id="spacing" inputmode="decimal" min="0.5" max="10" step="0.05" value="2.5">
+        </label>
+        <label for="margin">Testata (m) <small>spazio libero a inizio e fine filare</small>
+          <input type="number" id="margin" inputmode="decimal" min="0" max="30" step="0.5" value="1">
+        </label>
+      </div>
+    </div>
+
+    <div class="step">
+      <h2><i>3</i>Metri lineari</h2>
+      <div class="result" aria-live="polite">
+        <span class="k">Totale filari</span>
+        <span class="big"><b id="totM">0</b><span>m</span></span>
+        <span class="sub" id="totSub">Disegna un vigneto per iniziare.</span>
+      </div>
+      <div class="plots" id="plotList"></div>
+      <div class="row">
+        <button type="button" id="addBtn">Aggiungi un altro appezzamento</button>
+        <button type="button" id="delBtn">Elimina questo</button>
+      </div>
+    </div>
+
+    <p class="note">I metri sono una stima calcolata dalla mappa satellitare e possono differire di qualche punto percentuale dalla misura reale.</p>
+  </section>
+</main>
+<noscript>Per usare lo strumento serve JavaScript.</noscript>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------- Geometria (pura, senza mappa) ---------- */
+function origin(ll){ return {lat:ll.lat, lng:ll.lng, kx:111320*Math.cos(ll.lat*Math.PI/180), ky:110574}; }
+function toXY(ll,o){ return {x:(ll.lng-o.lng)*o.kx, y:(ll.lat-o.lat)*o.ky}; }
+function toLL(x,y,o){ return {lat:o.lat+y/o.ky, lng:o.lng+x/o.kx}; }
+
+function polyArea(p){
+  var s=0; for(var i=0;i<p.length;i++){ var a=p[i], b=p[(i+1)%p.length]; s+=a.x*b.y-b.x*a.y; }
+  return Math.abs(s)/2;
+}
+/* Direzione (0-180, 0 = nord) del lato piu' lungo: punto di partenza ragionevole per i filari. */
+function longestBearing(p){
+  var best=0, bl=-1;
+  for(var i=0;i<p.length;i++){
+    var a=p[i], b=p[(i+1)%p.length], dx=b.x-a.x, dy=b.y-a.y, l=Math.hypot(dx,dy);
+    if(l>bl){ bl=l; best=(Math.atan2(dx,dy)*180/Math.PI+360)%180; }
+  }
+  return Math.round(best);
+}
+/* Filari paralleli alla direzione "bearing", a distanza "spacing", tagliati sul poligono.
+   Ritorna i segmenti (in metri locali) e il totale. */
+function rowsFor(p, bearing, spacing, margin){
+  var b=bearing*Math.PI/180, ux=Math.sin(b), uy=Math.cos(b), vx=Math.cos(b), vy=-Math.sin(b);
+  var q=p.map(function(pt){ return {u:pt.x*ux+pt.y*uy, v:pt.x*vx+pt.y*vy}; });
+  var vmin=Infinity, vmax=-Infinity; q.forEach(function(t){ vmin=Math.min(vmin,t.v); vmax=Math.max(vmax,t.v); });
+  var segs=[], total=0;
+  if(!(spacing>0)) return {segs:segs,total:0};
+  for(var v=vmin+spacing/2; v<vmax; v+=spacing){
+    var us=[];
+    for(var i=0;i<q.length;i++){
+      var a=q[i], c=q[(i+1)%q.length];
+      if((a.v<=v)!==(c.v<=v)){ us.push(a.u+(v-a.v)/(c.v-a.v)*(c.u-a.u)); }
+    }
+    us.sort(function(x,y){return x-y;});
+    for(var k=0;k+1<us.length;k+=2){
+      var u1=us[k]+margin, u2=us[k+1]-margin;
+      if(u2-u1>0.5){
+        segs.push([{x:u1*ux+v*vx,y:u1*uy+v*vy},{x:u2*ux+v*vx,y:u2*uy+v*vy}]);
+        total+=u2-u1;
+      }
+    }
+  }
+  return {segs:segs,total:total};
+}
+function bearingBetween(a,b){ return Math.round((Math.atan2(b.x-a.x,b.y-a.y)*180/Math.PI+360)%180); }
+function compute(plot){
+  if(!plot.closed || plot.pts.length<3) return null;
+  var o=origin(plot.pts[0]), xy=plot.pts.map(function(l){return toXY(l,o);});
+  var r=rowsFor(xy,plot.bearing,plot.spacing,plot.margin);
+  return {area:polyArea(xy), count:r.segs.length, total:r.total,
+    lines:r.segs.map(function(s){ return s.map(function(t){ var c=toLL(t.x,t.y,o); return [c.lat,c.lng]; }); })};
+}
+window.__geo={origin:origin,toXY:toXY,polyArea:polyArea,rowsFor:rowsFor,longestBearing:longestBearing,compute:compute};
+
+/* ---------- Configurazione mappa ----------
+   Con una chiave Google Maps usa Google Maps (satellite). Senza chiave usa Leaflet con immagini Esri. */
+var GOOGLE_MAPS_KEY = '';   // <-- incolla qui la chiave "Maps JavaScript API" per usare Google Maps
+var START = {lat:45.3512, lng:10.7360, z:16};
+
+var $=function(id){return document.getElementById(id);};
+var fmt=function(n,d){return n.toLocaleString('it-IT',{maximumFractionDigits:d||0,minimumFractionDigits:d||0});};
+function areaTxt(m2){ return m2>=10000? fmt(m2/10000,2)+' ha' : fmt(m2)+' m²'; }
+function mapError(t){ $('map').innerHTML='<p style="margin:0;padding:24px;font-size:16px;color:#14243B;background:#fff;height:100%">'+t+'</p>'; }
+
+function loadScript(src,ok,ko){ var s=document.createElement('script'); s.src=src; if(ok) s.onload=ok; s.onerror=ko; document.head.appendChild(s); }
+function loadCss(href){ var l=document.createElement('link'); l.rel='stylesheet'; l.href=href; document.head.appendChild(l); }
+
+/* ---------- Adattatore Leaflet ---------- */
+function leafletAdapter(){
+  var map=L.map('map',{maxZoom:20}).setView([START.lat,START.lng],START.z);
+  var SAT='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+  var STREET='https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+  var base=null;
+  function setBase(url,street){
+    if(base) map.removeLayer(base);
+    base=L.tileLayer(url,{maxZoom:20,maxNativeZoom:street?19:18,
+      attribution:street?'&copy; OpenStreetMap':'Immagini &copy; Esri, Maxar, Earthstar Geographics'}).addTo(map);
+    base.bringToBack();
+    var errs=0, ok=0, mine=base;
+    base.on('tileload',function(){ ok++; errs=0; });
+    base.on('tileerror',function(){ errs++; if(errs===6 && !ok && mine===base && failCb) failCb(street); });
+  }
+  var failCb=null;
+  setBase(SAT,false);
+  L.control.scale({imperial:false}).addTo(map);
+  function rm(l){ return {remove:function(){ map.removeLayer(l); }}; }
+  return {
+    onClick:function(fn){ map.on('click',function(e){ fn(e.latlng.lat,e.latlng.lng); }); },
+    setView:function(lat,lng,z){ map.setView([lat,lng],z); },
+    resize:function(){ map.invalidateSize(); },
+    onTileFail:function(fn){ failCb=fn; },
+    center:function(){ var c=map.getCenter(); return [c.lat,c.lng]; },
+    setImagery:function(url,street){ setBase(url||(street?STREET:SAT),!!street); },
+    cursor:function(on){ document.body.classList.toggle('crosshair',on); },
+    polygon:function(pts,o,onClick){
+      var ll=pts.map(function(t){return [t.lat,t.lng];});
+      var sh=o.closed?L.polygon(ll,{color:'#fff',weight:o.active?3:2,fillColor:'#E0A92A',fillOpacity:o.active?.16:.08,interactive:!!o.selectable})
+                     :L.polyline(ll,{color:'#fff',weight:3,dashArray:'6 6',interactive:false});
+      if(o.selectable) sh.on('click',function(e){ L.DomEvent.stopPropagation(e); onClick(); });
+      sh.addTo(map); var h=rm(sh); h.bounds=function(){ map.fitBounds(sh.getBounds(),{maxZoom:19,padding:[30,30]}); }; return h;
+    },
+    lines:function(ls){ return rm(L.polyline(ls,{color:'#FFD54A',weight:1.2,opacity:.85,interactive:false}).addTo(map)); },
+    vertex:function(pt,o,onDrag,onEnd){
+      var m=L.marker([pt.lat,pt.lng],{draggable:o.closed,interactive:o.closed,keyboard:false,
+        icon:L.divIcon({className:'',html:'<div class="vtx'+(o.closed?'':' d')+'"></div>',iconSize:[22,22],iconAnchor:[11,11]})}).addTo(map);
+      if(o.closed){ m.on('drag',function(e){ var q=e.target.getLatLng(); onDrag(q.lat,q.lng); }); m.on('dragend',onEnd); }
+      return rm(m);
+    },
+    dot:function(lat,lng){ return rm(L.circleMarker([lat,lng],{radius:7,color:'#fff',weight:3,fillColor:'#E0A92A',fillOpacity:1}).addTo(map)); }
+  };
+}
+
+/* ---------- Adattatore Google Maps ---------- */
+function googleAdapter(){
+  var gm=google.maps;
+  var map=new gm.Map($('map'),{center:{lat:START.lat,lng:START.lng},zoom:START.z,mapTypeId:'satellite',tilt:0,
+    streetViewControl:false,fullscreenControl:false,rotateControl:false,gestureHandling:'greedy',maxZoom:21,
+    mapTypeControlOptions:{mapTypeIds:['satellite','roadmap']}});
+  function rm(list,extra){ var h={remove:function(){ list.forEach(function(x){x.setMap(null);}); }}; for(var k in extra) h[k]=extra[k]; return h; }
+  function sym(fill,stroke,scale){ return {path:gm.SymbolPath.CIRCLE,scale:scale,fillColor:fill,fillOpacity:1,strokeColor:stroke,strokeWeight:3}; }
+  return {
+    onClick:function(fn){ map.addListener('click',function(e){ fn(e.latLng.lat(),e.latLng.lng()); }); },
+    setView:function(lat,lng,z){ map.setCenter({lat:lat,lng:lng}); map.setZoom(z); },
+    resize:function(){ gm.event.trigger(map,'resize'); },
+    cursor:function(on){ map.setOptions({draggableCursor:on?'crosshair':null}); },
+    polygon:function(pts,o,onClick){
+      var path=pts.map(function(t){return {lat:t.lat,lng:t.lng};}), sh;
+      if(o.closed) sh=new gm.Polygon({paths:path,strokeColor:'#fff',strokeWeight:o.active?3:2,fillColor:'#E0A92A',fillOpacity:o.active?.16:.08,clickable:!!o.selectable,map:map});
+      else sh=new gm.Polyline({path:path,strokeColor:'#fff',strokeWeight:3,strokeOpacity:.9,clickable:false,map:map});
+      if(o.selectable) sh.addListener('click',onClick);
+      return rm([sh],{bounds:function(){ var b=new gm.LatLngBounds(); path.forEach(function(p){b.extend(p);}); map.fitBounds(b,30); }});
+    },
+    lines:function(ls){
+      return rm(ls.map(function(l){ return new gm.Polyline({path:l.map(function(c){return {lat:c[0],lng:c[1]};}),strokeColor:'#FFD54A',strokeWeight:1.2,strokeOpacity:.85,clickable:false,map:map}); }));
+    },
+    vertex:function(pt,o,onDrag,onEnd){
+      var m=new gm.Marker({position:{lat:pt.lat,lng:pt.lng},map:map,draggable:o.closed,clickable:o.closed,zIndex:10,
+        icon:sym(o.closed?'#E0A92A':'#fff',o.closed?'#fff':'#1E3A5F',9)});
+      if(o.closed){ m.addListener('drag',function(e){ onDrag(e.latLng.lat(),e.latLng.lng()); }); m.addListener('dragend',onEnd); }
+      return rm([m]);
+    },
+    dot:function(lat,lng){ return rm([new gm.Marker({position:{lat:lat,lng:lng},map:map,clickable:false,zIndex:11,icon:sym('#E0A92A','#fff',7)})]); }
+  };
+}
+
+/* ---------- Stato ---------- */
+var plots=[], active=-1, mode='idle', dirFirst=null, dirMarker=null, M=null;
+function newPlot(){
+  var prev=plots[plots.length-1];
+  plots.push({pts:[],closed:false,bearing:0,spacing:prev?prev.spacing:2.5,margin:prev?prev.margin:1,layers:[],markers:[]});
+  active=plots.length-1;
+}
+function cur(){ return plots[active]; }
+function clearList(a){ a.forEach(function(h){h.remove();}); a.length=0; }
+
+function drawPlot(p,idx){
+  clearList(p.layers);
+  var isAct=(idx===active);
+  if(p.pts.length>=2){
+    p.layers.push(M.polygon(p.pts,{closed:p.closed,active:isAct,selectable:p.closed&&!isAct},function(){ if(mode==='idle') select(idx); }));
+  }
+  var c=compute(p);
+  if(c) p.layers.push(M.lines(c.lines));
+}
+function buildMarkers(p){
+  clearList(p.markers);
+  p.pts.forEach(function(ll,i){
+    p.markers.push(M.vertex(ll,{closed:p.closed},
+      function(lat,lng){ p.pts[i]={lat:lat,lng:lng}; drawPlot(p,active); stats(); },
+      function(){ stats(); }));
+  });
+}
+function redraw(){
+  plots.forEach(function(p,i){ drawPlot(p,i); if(i!==active) clearList(p.markers); });
+  if(cur()) buildMarkers(cur());
+  stats();
+}
+function select(i){
+  active=i; setDir(false); redraw();
+  var l=cur().layers[0]; if(compute(cur()) && l && l.bounds) l.bounds();
+}
+
+/* ---------- Pannello ---------- */
+function stats(){
+  var p=cur(), list=$('plotList'), tot=0, area=0, rowsN=0, done=0;
+  list.innerHTML='';
+  plots.forEach(function(pl,i){
+    var c=compute(pl); if(!c) return;
+    done++; tot+=c.total; area+=c.area; rowsN+=c.count;
+    var b=document.createElement('button'); b.type='button';
+    if(i===active) b.setAttribute('aria-current','true');
+    b.innerHTML='<b>Appezzamento '+(i+1)+'</b><span>'+areaTxt(c.area)+' · '+c.count+' filari</span><span class="m">'+fmt(c.total)+' m</span>';
+    b.addEventListener('click',function(){ select(i); });
+    list.appendChild(b);
+  });
+  $('totM').textContent=fmt(tot);
+  $('totSub').textContent=done? (done+(done===1?' appezzamento':' appezzamenti')+' · '+areaTxt(area)+' · '+rowsN+' filari') : 'Disegna un vigneto per iniziare.';
+  var closed=p&&p.closed, n=p?p.pts.length:0;
+  $('closeBtn').disabled=!(p&&!p.closed&&n>=3); $('closeBtn').hidden=!!closed;
+  $('undoBtn').disabled=!(p&&!p.closed&&n>0); $('undoBtn').hidden=!!closed;
+  $('clearBtn').disabled=!(p&&n>0); $('clearBtn').textContent=closed?'Ridisegna':'Ricomincia';
+  $('rowsStep').style.opacity=closed?1:.5;
+  ['bearing','traceBtn','spacing','margin'].forEach(function(id){ $(id).disabled=!closed; });
+  $('delBtn').disabled=!(closed||n>0);
+  $('addBtn').disabled=!closed;
+  if(p){ $('bearing').value=p.bearing; $('bearingOut').textContent=p.bearing+'°';
+    var f=document.activeElement; if(f!==$('spacing')) $('spacing').value=p.spacing; if(f!==$('margin')) $('margin').value=p.margin; }
+  var h;
+  if(mode==='dir') h=dirFirst?'Tocca un secondo punto sullo stesso filare, lontano dal primo.':'Tocca un punto su un filare che vedi nella foto.';
+  else if(!p||n===0) h='Tocca la mappa sugli angoli del vigneto. Ingrandisci finché vedi bene i filari.';
+  else if(!closed) h=n+(n===1?' punto.':' punti.')+(n<3?' Ne servono almeno 3.':' Quando hai finito, tocca «Chiudi il contorno».');
+  else h='Trascina i punti gialli per sistemare il contorno.';
+  $('drawHint').textContent=h;
+  $('traceBtn').textContent=mode==='dir'?'Annulla tracciamento':'Traccia un filare sulla mappa (2 tocchi)';
+  M.cursor(mode==='dir'||(p&&!p.closed)||plots.length===0);
+}
+function setDir(on){ mode=on?'dir':'idle'; dirFirst=null; if(dirMarker){ dirMarker.remove(); dirMarker=null; } }
+
+/* ---------- Eventi ---------- */
+function bind(){
+  M.onClick(function(lat,lng){
+    var ll={lat:lat,lng:lng};
+    if(mode==='dir'){
+      var p=cur(); if(!p||!p.closed) return;
+      if(!dirFirst){ dirFirst=ll; dirMarker=M.dot(lat,lng); }
+      else {
+        var o=origin(p.pts[0]), a=toXY(dirFirst,o), b=toXY(ll,o);
+        if(Math.hypot(b.x-a.x,b.y-a.y)>=5){ p.bearing=bearingBetween(a,b); setDir(false); redraw(); return; }
+      }
+      stats(); return;
+    }
+    if(active<0) newPlot();
+    var q=cur(); if(q.closed) return;
+    q.pts.push(ll); redraw();
+  });
+  $('closeBtn').addEventListener('click',function(){
+    var p=cur(); if(!p||p.pts.length<3) return;
+    p.closed=true; var o=origin(p.pts[0]); p.bearing=longestBearing(p.pts.map(function(l){return toXY(l,o);}));
+    redraw(); if(p.layers[0]&&p.layers[0].bounds) p.layers[0].bounds();
+  });
+  $('undoBtn').addEventListener('click',function(){ var p=cur(); if(p&&!p.closed){ p.pts.pop(); redraw(); } });
+  $('clearBtn').addEventListener('click',function(){ var p=cur(); if(!p) return; p.pts=[]; p.closed=false; setDir(false); redraw(); });
+  $('delBtn').addEventListener('click',function(){
+    var p=cur(); if(!p) return; clearList(p.layers); clearList(p.markers); plots.splice(active,1);
+    active=plots.length?Math.min(active,plots.length-1):-1; setDir(false); redraw();
+  });
+  $('addBtn').addEventListener('click',function(){ newPlot(); setDir(false); redraw(); });
+  $('traceBtn').addEventListener('click',function(){ setDir(mode!=='dir'); stats(); });
+  $('bearing').addEventListener('input',function(){ var p=cur(); if(!p) return; p.bearing=+this.value; drawPlot(p,active); stats(); });
+  function numInput(id,key,min,max){
+    $(id).addEventListener('input',function(){
+      var p=cur(), v=parseFloat(String(this.value).replace(',','.'));
+      if(!p||!(v>=min&&v<=max)) return; p[key]=v; drawPlot(p,active); stats();
+    });
+  }
+  numInput('spacing','spacing',0.5,10); numInput('margin','margin',0,30);
+  function getJSON(url){ return fetch(url).then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); }); }
+  function geocode(q){
+    var enc=encodeURIComponent(q);
+    // 1) Nominatim (OpenStreetMap), 2) Photon come riserva. Nessun header personalizzato: evita blocchi CORS.
+    return getJSON('https://nominatim.openstreetmap.org/search?format=json&limit=1&accept-language=it&countrycodes=it&q='+enc)
+      .then(function(j){ if(j.length) return {lat:+j[0].lat,lng:+j[0].lon}; throw new Error('vuoto'); })
+      .catch(function(){
+        return getJSON('https://photon.komoot.io/api/?limit=1&lat=45.35&lon=10.73&q='+enc).then(function(j){
+          var f=j.features&&j.features[0]; if(!f) return null;
+          return {lat:f.geometry.coordinates[1],lng:f.geometry.coordinates[0]};
+        });
+      });
+  }
+  $('searchForm').addEventListener('submit',function(e){
+    e.preventDefault();
+    var q=$('q').value.trim(), msg=$('searchMsg'); if(!q) return; msg.hidden=true;
+    // coordinate scritte a mano, es. 45.3512, 10.7360
+    var c=/^\s*(-?\d{1,2}[.,]\d+)\s*[;, ]\s*(-?\d{1,3}[.,]\d+)\s*$/.exec(q);
+    if(c){ M.setView(parseFloat(c[1].replace(',','.')),parseFloat(c[2].replace(',','.')),18); return; }
+    geocode(q).then(function(r){
+      if(!r){ msg.textContent='Nessun risultato. Prova con comune e via, oppure sposta la mappa a mano.'; msg.hidden=false; return; }
+      M.setView(r.lat,r.lng,17);
+    }).catch(function(){ msg.textContent='Ricerca non disponibile in questo momento. Sposta la mappa a mano o usa il pulsante GPS.'; msg.hidden=false; });
+  });
+  $('locBtn').addEventListener('click',function(){
+    var msg=$('searchMsg'); msg.hidden=true;
+    if(!navigator.geolocation){ msg.textContent='Posizione non disponibile su questo dispositivo.'; msg.hidden=false; return; }
+    navigator.geolocation.getCurrentPosition(
+      function(p){ M.setView(p.coords.latitude,p.coords.longitude,18); },
+      function(){ msg.textContent='Posizione non concessa. Cerca l\'indirizzo o sposta la mappa.'; msg.hidden=false; },
+      {enableHighAccuracy:true,timeout:10000});
+  });
+  window.addEventListener('resize',function(){ M.resize(); });
+}
+
+function setupImagery(){
+  if(!M.setImagery) return;
+  var sel=$('imgSel'), wrap=$('imgWrap');
+  function opt(v,t){ var o=document.createElement('option'); o.value=v; o.textContent=t; sel.appendChild(o); }
+  opt('recent','Più recenti');
+  opt('street','Mappa stradale');
+  wrap.hidden=false;
+  M.onTileFail(function(street){
+    var msg=$('searchMsg'); msg.hidden=false;
+    if(sel.value!=='recent' && sel.value!=='street'){
+      sel.value='recent'; M.setImagery(null,false);
+      msg.textContent='Le immagini di quella data non sono disponibili qui: ho rimesso le più recenti.';
+    } else {
+      msg.textContent='Le immagini della mappa non arrivano. Controlla la connessione e apri la pagina da Chrome o Safari, non dall\'anteprima di un file.';
+    }
+  });
+  sel.addEventListener('change',function(){
+    var v=sel.value;
+    if(v==='recent') M.setImagery(null,false); else if(v==='street') M.setImagery(null,true);
+    else M.setImagery(v,false);
+  });
+  // Archivio storico Esri (Wayback): date precedenti delle stesse immagini satellitari
+  fetch('https://s3-us-west-2.amazonaws.com/config.maptiles.arcgis.com/waybackconfig.json')
+    .then(function(r){return r.json();})
+    .then(function(cfg){
+      var items=[];
+      Object.keys(cfg).forEach(function(k){
+        var it=cfg[k], m=/(\d{4})-(\d{2})-(\d{2})/.exec(it.itemTitle||''); if(!m||!it.itemURL) return;
+        items.push({d:m[1]+m[2]+m[3],label:m[3]+'/'+m[2]+'/'+m[1],
+          url:it.itemURL.replace('{level}','{z}').replace('{row}','{y}').replace('{col}','{x}')});
+      });
+      items.sort(function(a,b){return a.d<b.d?1:-1;});
+      if(!items.length) return;
+      var g=document.createElement('optgroup'); g.label='Archivio storico';
+      items.forEach(function(i){ var o=document.createElement('option'); o.value=i.url; o.textContent='Immagini del '+i.label; g.appendChild(o); });
+      sel.insertBefore(g,sel.children[1]);
+    })
+    .catch(function(){ /* senza archivio restano le due opzioni di base */ });
+}
+function start(adapter){ M=adapter; window.__app={plots:plots,map:M}; bind(); setupImagery(); stats(); }
+function boot(){
+  if(GOOGLE_MAPS_KEY){
+    window.gm_authFailure=function(){ mapError('La chiave Google Maps non è valida o non è abilitata per questo sito.'); };
+    window.__gmReady=function(){ start(googleAdapter()); };
+    loadScript('https://maps.googleapis.com/maps/api/js?key='+encodeURIComponent(GOOGLE_MAPS_KEY)+'&callback=__gmReady&loading=async&v=weekly',null,
+      function(){ mapError('Google Maps non si carica. Controlla la connessione.'); });
+  } else {
+    loadCss('https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css');
+    loadScript('https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js',function(){ start(leafletAdapter()); },
+      function(){ mapError('La mappa non si carica. Apri la pagina da un browser con connessione internet, non dall\'anteprima di un file.'); });
+  }
+}
+boot();
+})();
+</script>
+</body>
+</html>
